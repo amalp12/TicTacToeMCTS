@@ -631,7 +631,7 @@ class Computer(Player):
     def computerAI(self):
         print("I'm Here")
         mcts = MCTS(self.boardMemory,main_player_x=False)
-        return mcts.Simulate(mcts.root,10000) 
+        return mcts.Simulate(mcts.root,1000) 
 
 class TreeNode():
     def __init__(self, value, bMemory=None,parent=None):
