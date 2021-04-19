@@ -3,7 +3,7 @@ import time
 import tkinter as tk
 from PIL import  ImageTk as itk 
 import random
-from copy import deepcopy,copy
+from copy import copy
 from math import sqrt, log
 
 
@@ -645,7 +645,7 @@ class TreeNode():
         self.parent = parent
 
         # Getting the memory of the current board 
-        #self.memory = deepcopy(bMemory)
+        #self.memory = copy(bMemory)
 
         # Creating a set for children of the node
         self.children = dict()
@@ -666,19 +666,19 @@ class MCTS():
         self.memory = self.copyMemory(bMemory)
         self.root = TreeNode(value,self.memory)
         self.current = self.root
-        self.my_slots = deepcopy(self.memory.slots)
+        self.my_slots = copy(self.memory.slots)
         # main player is the player want to win
         self.main_player_x = main_player_x
         self.player_x = self.main_player_x
-        self.slots_takenx = deepcopy(self.memory.slots_takenx)
-        self.slots_takeno = deepcopy(self.memory.slots_takeno)
+        self.slots_takenx = copy(self.memory.slots_takenx)
+        self.slots_takeno = copy(self.memory.slots_takeno)
         self.winning_slots = [(1,2,3), (4,5,6), (7,8,9), (1,4,7), (2,5,8), (3,6,9), (1,5,9), (3,5,7)]
         self.winner_announced = False
     def resetSlots(self):
-        self.my_slots = deepcopy(self.memory.slots)
-        self.player_x = deepcopy(self.main_player_x)
-        self.slots_takenx = deepcopy(self.memory.slots_takenx)
-        self.slots_takeno = deepcopy(self.memory.slots_takeno)
+        self.my_slots = copy(self.memory.slots)
+        self.player_x = copy(self.main_player_x)
+        self.slots_takenx = copy(self.memory.slots_takenx)
+        self.slots_takeno = copy(self.memory.slots_takeno)
         self.winner_announced = False
 
     def copyMemory(self, bMemory):
