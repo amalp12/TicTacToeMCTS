@@ -5,8 +5,23 @@ from PIL import  ImageTk as itk
 import random
 from copy import copy
 from math import sqrt, log
+from functools import wraps
+from time import time
 
+ITERATIONS = 500
+EXPLORATION_CONTSTANT = sqrt(2)-.1
 
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        diff =te-ts
+        print(f"func: {f.__name__} args:[{args},{kw}] took: {diff} seccond(s)." )
+          
+        return result
+    return wrap
 
 def playWithFriend(rootwin):
     
@@ -34,6 +49,7 @@ def playWithComputer(rootwin):
         
 
 #List functions
+@timing
 def mostFrequent(list1):
     highest = 0
     count =0
@@ -44,7 +60,7 @@ def mostFrequent(list1):
             highest = i
 
     return highest
-
+@timing
 def Intersection(list1, list2):
     list3 = []
     for i in list1:
@@ -631,7 +647,7 @@ class Computer(Player):
     def computerAI(self):
         print("I'm Here")
         mcts = MCTS(self.boardMemory,main_player_x=False)
-        return mcts.Simulate(mcts.root,1000) 
+        return mcts.Simulate(mcts.root,ITERATIONS) 
 
 class TreeNode():
     def __init__(self, value, bMemory=None,parent=None):
@@ -719,7 +735,7 @@ class MCTS():
         if len(self.my_slots) == 0:
             raise ArithmeticError("Moves Finished! No more random moves.")
         
-        choice = random.choice(list(self.my_slots.keys()))
+        choice = random.choice(Difference(list(self.my_slots.keys()),list(node.children.keys()) ))
         
         return choice
     def deleteChoice(self, node, choice):
@@ -747,7 +763,7 @@ class MCTS():
                 
 
         try:
-            return self.getBestMove(root_node,2).value
+            return self.getBestMove(root_node,EXPLORATION_CONTSTANT)
         except:
             ValueError("Best Move not returned ID : 3")
 
@@ -763,28 +779,28 @@ class MCTS():
             ptr = node
             while(ptr):
                 ptr.visits +=1
-                if(score ==1):
-                    ptr.score +=score
-                elif(score ==-1):
-                    ptr.score -=score
+                ptr.score +=score
+                
                 return_node = ptr
                 ptr = ptr.parent
             return return_node
             
-    def Expand(self, node, choice):
+    def Expand(self, node):
         # Getting all the possible states 
         free_slots = list(self.my_slots.values()) # it is a slot number list
 
-        if(len(free_slots)==len(list(node.children.keys()))):
-            node.is_fully_expanded = True
-        #for free_slot in free_slots:
+        for free_slot in free_slots:
             # Make sure that the current state in states is not already present among child nodes
-        elif choice not in list(node.children.keys()):
+       # elif choice not in list(node.children.keys()):
                 #create a new node
-                new_node = TreeNode(choice, parent =node)
+                new_node = TreeNode(free_slot, parent =node)
                 
                 # add child node to parent's node children list (dict)
-                node.children[choice] = new_node
+                node.children[free_slot] = new_node
+        if(len(free_slots)==len(list(node.children.keys()))):
+            node.is_fully_expanded = True
+
+
     def isFullyExpanded(self,node): #returns a booloean       
         """
         When can a node become fully expanded?
@@ -815,16 +831,29 @@ class MCTS():
 
             try:    
 
-                
-                random_choice = self.randomMoveGenerator(ptr)
-                # if the node has no child nodes then we make the child node 
-                if len(ptr.children)< len(self.my_slots) :
-                    self.Expand(ptr,random_choice)
-                    self.isFullyExpanded(ptr)
-                self.deleteChoice(ptr,random_choice)
-                statement = self.checkWinner()
-                #if(not self.winner_announced):
-                ptr = ptr.children[random_choice]
+               # if(ptr.is_fully_expanded):
+                    
+                    if len(ptr.children)< len(self.my_slots) :
+                        self.Expand(ptr)
+                        self.isFullyExpanded(ptr)
+                    
+                    ai_choice = self.getBestMove(ptr,EXPLORATION_CONTSTANT)
+                    self.deleteChoice(ptr,ai_choice)
+                    statement = self.checkWinner()
+                    #if(not self.winner_announced):
+                    ptr = ptr.children[ai_choice]
+                    """
+                else:
+                    random_choice = self.randomMoveGenerator(ptr)
+                    # if the node has no child nodes then we make the child node 
+                    if len(ptr.children)< len(self.my_slots) :
+                        self.Expand(ptr,random_choice)
+                        self.isFullyExpanded(ptr)
+                    self.deleteChoice(ptr,random_choice)
+                    statement = self.checkWinner()
+                    #if(not self.winner_announced):
+                    ptr = ptr.children[random_choice]
+                    """
             except:
                 raise ValueError("Out of moves! Error ID 1")
         ptr.is_terminal_node = self.winner_announced  
@@ -835,26 +864,26 @@ class MCTS():
         
         # if our main player is x we want to return a postive score if x wins
         
-        if (self.main_player_x):
-            if statement == 'Player X Won!':
-                score = 1
-            elif statement == 'Player O Won!':
-                score = -1
-                       
+        #if (self.main_player_x):
+        if statement == 'Player X Won!':
+                score = 2
+        elif statement == 'Player O Won!':
+                score = -2
+        """               
         # if our main player is o we want to return a postive score if x wins
         elif(not self.main_player_x):
             if statement == 'Player O Won!':
                  score = 1
             elif statement == 'Player X Won!':
                 score = -1
-        
+        """
         return (score, ptr)  
             
     # finally after Backpropogation we need to get the best move this returns a node
-    def getBestMove(self, node ,exploration_constant, main_player=True):
+    def getBestMove(self, node ,exploration_constant):
         best_score = float('-inf')
         best_moves =  []
-        if main_player:
+        if self.player_x:
             current_player = 1
         else :
             #if we want maximum score for the opponent then we'd have to multiply the move score by -1 to make it postive 
@@ -862,8 +891,11 @@ class MCTS():
 
         # loop over all the child nodes
         for child_node in node.children.values():
-            move_score = current_player *  (child_node.score / child_node.visits) + (exploration_constant) *  sqrt( log(node.visits/child_node.visits) )
-
+            if child_node.visits == 0:
+                move_score = float('inf')
+            else:
+                move_score = current_player * (child_node.score / child_node.visits) + (exploration_constant) *  sqrt( log(node.visits/child_node.visits) ) 
+            
             # Case where a better move has been found
             if move_score> best_score:
                 best_score = move_score
@@ -873,8 +905,8 @@ class MCTS():
                 best_moves.append(child_node)
         
         # return one of the best moves randomly
-        return random.choice(best_moves)
-
+        return random.choice(best_moves).value
+    @timing
     def checkWinner(self):
         x = self.slots_takenx
         o = self.slots_takeno 
@@ -887,6 +919,8 @@ class MCTS():
         try:
             if(not self.winner_announced):    
                 for i in self.winning_slots:
+                    if(len(x) <3 and len(o)<3): 
+                        break
                         
                     if i[0] in x and i[1] in x and i[2] in x:
                         statement = 'Player X Won!'
